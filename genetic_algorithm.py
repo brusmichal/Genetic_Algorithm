@@ -44,19 +44,62 @@ def roulette_selection(population, evaluation):
     for i in range(len(selection_probability)):
         selection_probability[i] = evaluation[i] / evaluation.sum()
     rng = np.random.default_rng()
-    selected = rng.choice(population, population_size, p=evaluation)   # should it be possible
+    selected = rng.choice(population, population_size, p=evaluation)  # should it be possible
     # for an individual to be selected more than once? Yes, otherwise everyone would be selected
     return selected
 
 
-def reproduce_and_mutate(p_crossing, p_mutation, selected):
-    return offspring
+def crossover(parent1, parent2, p_crossover):
+    rng = np.random.default_rng()
+    probability = rng.uniform(0, 1)
+    if probability < p_crossover:
+        cross_point = rng.integers(200)
+        child1 = np.concatenate(parent1[:cross_point], parent2[cross_point:])
+        child2 = np.concatenate(parent1[cross_point:], parent2[:cross_point])
+        return child1, child2
+    else:
+        return parent1, parent2
 
 
-def genetic_algorithm(q_function, population_size, p_mutation, p_crossing, t_max):
+def mutate(individual, p_mutation):
+    genes_number = len(individual)
+    rng = np.random.default_rng()
+    p_genes_mutation = rng.uniform(0, 1, size=genes_number)
+    for i in range(genes_number):
+        if p_genes_mutation[i] < p_mutation:
+            individual[i] = 1 if individual[i] == 0 else individual[i] = 0
+    return individual
+
+
+def reproduce_and_mutate(p_crossover, p_mutation, selected):
+    population_size = selected.shape()[0]
+    new_population = np.empty(population_size)
+    for i in range(0, population_size, 2):
+        parent1, parent2 = selected[i], selected[i + 1]
+        child1, child2 = crossover(parent1, parent2, p_crossover)
+        if parent1 != child1:  # only kids mutate
+            child1, child2 = mutate(child1, p_mutation), mutate(child2, p_mutation)
+        new_population[i], new_population[i + 1] = child1, child2
+    return new_population
+
+
+def find_best(evaluation, population):
+    index = evaluation.argmax()
+    best = evaluation[index]
+    return best, population[index]
+
+
+def genetic_algorithm(q_function, population_size, p_mutation, mutation_strengh, p_crossover, t_max):
     population = initialise_population(population_size)
     t = 0
     evaluation = evaluate(population, q_function)
+    best_yet = find_best(evaluation, population)
     while t < t_max:
         selected = roulette_selection(population, evaluation)
-        offspring = reproduce_and_mutate(p_crossing, p_mutation, selected)
+        offspring = reproduce_and_mutate(p_crossover, p_mutation, selected)
+        evaluation = evaluate(offspring, q_function)
+        best = find_best(evaluation, population)
+        if best_yet[0] < best[0]:
+            best_yet = best
+        population = offspring
+        t = t + 1
