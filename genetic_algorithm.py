@@ -73,7 +73,7 @@ def mutate(individual, p_mutation):
     return individual
 
 
-def reproduce_and_mutate(p_crossover, p_mutation, selected):
+def reproduce(p_crossover, p_mutation, selected):
     bits_number = 200
     population_size = selected.shape[0]
     new_population = np.empty([population_size, bits_number])
@@ -88,34 +88,53 @@ def reproduce_and_mutate(p_crossover, p_mutation, selected):
 
 def find_best(evaluation, population):
     index = evaluation.argmax()
-    best = evaluation[index]
-    return best, population[index]
+    best_value = evaluation[index]
+    return best_value, population[index]
 
 
-def genetic_algorithm(q_function, population_size, p_mutation, p_crossover, t_max):
+def genetic_algorithm(q_function, p_mutation, p_crossover, population_size, population_budget):
+    gen_max = int(population_budget / population_size)  # population budget and size determine the number of generations
+    gen = 0
     population = initialise_population(population_size)
-    t = 0
     evaluation = evaluate(population, q_function)
     best_yet = find_best(evaluation, population)
-    best_history = np.array([best_yet])
-    generation_mean = evaluation.sum()/len(evaluation)
-    mean_history = np.array([generation_mean])
-    while t < t_max:
+    best_values_history = np.array([best_yet[0]])
+    best_points_history = np.array([best_yet[1]])
+    generation_mean = evaluation.sum() / len(evaluation)
+    generation_mean_history = np.array([generation_mean])
+    while gen < gen_max:
         selected = roulette_selection(population, evaluation)
-        offspring = reproduce_and_mutate(p_crossover, p_mutation, selected)
+        offspring = reproduce(p_crossover, p_mutation, selected)  # crossover and mutation
         evaluation = evaluate(offspring, q_function)
         best = find_best(evaluation, population)
-        best_history = np.concatenate((best_history, np.array([best])))
+        best_values_history = np.concatenate((best_values_history, [best[0]]))
+        best_points_history = np.concatenate((best_points_history, [best[1]]))
         generation_mean = evaluation.sum() / len(evaluation)
-        mean_history = np.concatenate((mean_history, np.array([generation_mean])))
+        generation_mean_history = np.concatenate((generation_mean_history, np.array([generation_mean])))
         if best_yet[0] < best[0]:
             best_yet = best
         population = offspring
-        t = t + 1
-    return best_yet, best_history, mean_history
+        gen = gen + 1
+    return best_yet, best_values_history, best_points_history, generation_mean_history
 
 
-best_result, history_of_best, mean = genetic_algorithm(profit_function, 200, 0.01, 0.75, 50)
-print(f"Najlepszy wynik: {best_result}")
-print(f"Historia najlepszych osobników w każdej generacji: {history_of_best[::, 0]}")
-print(f"Historia średnich dla generacji: {mean}")
+# best, v_history, p_history, mean = genetic_algorithm(profit_function, 0.01, 0.75, 200, 10000)
+# print(f"Najlepszy wynik: {best}")
+# print(f"Historia najlepszych osobników w każdej generacji: {v_history}")
+# print(f"Historia średnich dla generacji: {mean}")
+
+
+# total_budget = 10**6
+# populations = np.array([100, 250, 500, 1000, 2500, 5000, 10000])
+# p_mutations = np.array([0.3, 0.2, 0.1, 0.05, 0.025, 0.01, 0.005])
+# p_crossovers = np.array([0.9, 0.75, 0.6, 0.5, 0.3, 0.2, 0.1])
+#
+# mean_best_values = np.empty([7])
+# for i in range(7):
+#     best_values = np.empty(25)
+#     for j in range(25):
+#         result = genetic_algorithm(profit_function, 0.05, 0.75, populations[i], total_budget)
+#         best_values[j] = result[0][0]
+#     mean_best_values[i] = best_values.sum() / 25
+# print(f"Średnie najlepsze wyniki dla populacji: {mean_best_values}")
+
