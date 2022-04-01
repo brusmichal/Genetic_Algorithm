@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 def profit_function(engine_on_off_vector):
@@ -9,7 +10,9 @@ def profit_function(engine_on_off_vector):
     for t in range(len(engine_on_off_vector)):
         if engine_on_off_vector[t] == 1:
             total_mass = total_mass - 1
-        engine_acceleration = 500 / total_mass
+            engine_acceleration = 500 / total_mass
+        else:
+            engine_acceleration = 0
         friction_acceleration = -0.06 * velocity * abs(velocity) / total_mass
         gravity_acceleration = -0.9
         acceleration = engine_acceleration + friction_acceleration + gravity_acceleration
@@ -77,11 +80,10 @@ def reproduce(p_crossover, p_mutation, selected):
     bits_number = 200
     population_size = selected.shape[0]
     new_population = np.empty([population_size, bits_number])
-    for i in range(0, population_size, 2):
+    for i in range(0, population_size-1, 2):
         parent1, parent2 = selected[i], selected[i + 1]
-        have_offspring, child1, child2 = crossover(parent1, parent2, p_crossover)
-        if have_offspring:  # only kids mutate
-            child1, child2 = mutate(child1, p_mutation), mutate(child2, p_mutation)
+        child1, child2 = crossover(parent1, parent2, p_crossover)
+        child1, child2 = mutate(child1, p_mutation), mutate(child2, p_mutation)
         new_population[i], new_population[i + 1] = child1, child2
     return new_population
 
@@ -102,7 +104,7 @@ def genetic_algorithm(q_function, p_mutation, p_crossover, population_size, popu
     best_points_history = np.array([best_yet[1]])
     generation_mean = evaluation.sum() / len(evaluation)
     generation_mean_history = np.array([generation_mean])
-    while gen < gen_max:
+    while gen < gen_max - 1:
         selected = roulette_selection(population, evaluation)
         offspring = reproduce(p_crossover, p_mutation, selected)  # crossover and mutation
         evaluation = evaluate(offspring, q_function)
@@ -117,24 +119,4 @@ def genetic_algorithm(q_function, p_mutation, p_crossover, population_size, popu
         gen = gen + 1
     return best_yet, best_values_history, best_points_history, generation_mean_history
 
-
-# best, v_history, p_history, mean = genetic_algorithm(profit_function, 0.01, 0.75, 200, 10000)
-# print(f"Najlepszy wynik: {best}")
-# print(f"Historia najlepszych osobników w każdej generacji: {v_history}")
-# print(f"Historia średnich dla generacji: {mean}")
-
-
-# total_budget = 10**6
-# populations = np.array([100, 250, 500, 1000, 2500, 5000, 10000])
-# p_mutations = np.array([0.3, 0.2, 0.1, 0.05, 0.025, 0.01, 0.005])
-# p_crossovers = np.array([0.9, 0.75, 0.6, 0.5, 0.3, 0.2, 0.1])
-#
-# mean_best_values = np.empty([7])
-# for i in range(7):
-#     best_values = np.empty(25)
-#     for j in range(25):
-#         result = genetic_algorithm(profit_function, 0.05, 0.75, populations[i], total_budget)
-#         best_values[j] = result[0][0]
-#     mean_best_values[i] = best_values.sum() / 25
-# print(f"Średnie najlepsze wyniki dla populacji: {mean_best_values}")
 
