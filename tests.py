@@ -59,3 +59,6 @@ def compute_means(p_type, parameters, iterations):
         mean_best_values[i] = best_values.sum() / iterations
         mean_gen_means[i] = gen_means.sum(axis=0) / iterations
     return mean_best_values, mean_gen_means
+
+
+test("ps", populations, 25)

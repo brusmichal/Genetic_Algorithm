@@ -6,6 +6,8 @@ def profit_function(engine_on_off_vector):
     height = 0
     velocity = 0
     fuel_units_mass = engine_on_off_vector.sum()  # vector consists of 1s and 0s so naturally the sum is a number of 1s
+    if fuel_units_mass > 200:
+        print("WRONG VECTOR")
     total_mass = 20 + fuel_units_mass
     for t in range(len(engine_on_off_vector)):
         if engine_on_off_vector[t] == 1:
@@ -45,7 +47,10 @@ def roulette_selection(population, evaluation):
     population_size = population.shape[0]
     selection_probability = np.empty([population_size])
     for i in range(len(selection_probability)):
-        selection_probability[i] = evaluation[i] / evaluation.sum()
+        ev_sum = evaluation.sum()
+        if ev_sum == 0:
+            ev_sum = 1  # so that there won't be division by zero
+        selection_probability[i] = evaluation[i] / ev_sum
     rng = np.random.default_rng()
     selected = rng.choice(population, population_size, p=selection_probability)  # should it be possible
     # for an individual to be selected more than once? Yes, otherwise everyone would be selected
@@ -53,26 +58,27 @@ def roulette_selection(population, evaluation):
 
 
 def crossover(parent1, parent2, p_crossover):
-    have_offspring = True
     rng = np.random.default_rng()
     probability = rng.uniform(0, 1)
     if probability < p_crossover:
-        cross_point = rng.integers(200).astype(int)
+        cross_point = int(rng.integers(200))
         child1 = np.concatenate((parent1[:cross_point], parent2[cross_point:]))
-        child2 = np.concatenate((parent1[cross_point:], parent2[:cross_point]))
-        return have_offspring, child1, child2
+        child2 = np.concatenate((parent2[:cross_point], parent1[cross_point:]))
+        return child1, child2
     else:
-        have_offspring = False
-        return have_offspring, parent1, parent2
+        return parent1, parent2
 
 
 def mutate(individual, p_mutation):
-    genes_number = len(individual)
+    genes_number = 200
     rng = np.random.default_rng()
     p_genes_mutation = rng.uniform(0, 1, size=genes_number)
     for i in range(genes_number):
         if p_genes_mutation[i] < p_mutation:
-            individual[i] = 1 if individual[i] == 0 else 0
+            if individual[i] == 0:
+                individual[i] = 1
+            else:
+                individual[i] = 0
     return individual
 
 
@@ -85,6 +91,8 @@ def reproduce(p_crossover, p_mutation, selected):
         child1, child2 = crossover(parent1, parent2, p_crossover)
         child1, child2 = mutate(child1, p_mutation), mutate(child2, p_mutation)
         new_population[i], new_population[i + 1] = child1, child2
+        odd_individual = mutate(selected[-1], p_mutation)
+        new_population[-1] = odd_individual  # if odd number of parents the last individual mutates and goes to new_pop
     return new_population
 
 
